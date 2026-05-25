@@ -172,6 +172,9 @@
 /docs/vendor
 /docs/Gemfile.lock
 
+# Unignore Premiere Video Agent
+!/premiere-video-agent
+
 # Unignore our root-level metadata files.
 !/.dockerignore
 !/.editorconfig
