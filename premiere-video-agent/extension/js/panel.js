@@ -39,7 +39,10 @@ async function callBackend(path, body) {
 async function checkBackend() {
   const dot = document.getElementById("statusDot");
   try {
-    const res = await fetch(`${BACKEND}/ping`, { signal: AbortSignal.timeout(2000) });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 2000);
+    const res = await fetch(`${BACKEND}/ping`, { signal: controller.signal });
+    clearTimeout(timer);
     if (res.ok) { dot.className = "status-dot online"; return true; }
   } catch (_) {}
   dot.className = "status-dot error";
