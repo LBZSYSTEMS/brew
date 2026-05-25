@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src http://127.0.0.1:7720 http://localhost:7720; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';" />
+  <title>Premiere Video Agent</title>
+  <link rel="stylesheet" href="css/panel.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <span class="logo-icon">&#9654;</span>
+        <span class="logo-text">Video Agent</span>
+      </div>
+      <div class="status-dot" id="statusDot" title="Backend status"></div>
+    </header>
+
+    <!-- Tab Nav -->
+    <nav class="tabs">
+      <button class="tab active" data-tab="sort">Sort</button>
+      <button class="tab" data-tab="beat">Beat Sync</button>
+      <button class="tab" data-tab="cut">Auto Cut</button>
+      <button class="tab" data-tab="swap">Swap</button>
+    </nav>
+
+    <!-- ── SORT TAB ── -->
+    <section class="tab-panel active" id="tab-sort">
+      <p class="desc">Auto-organize all bin clips by metadata — no manual folders needed.</p>
+      <div class="field-group">
+        <label>Sort by</label>
+        <select id="sortKey">
+          <option value="duration">Duration</option>
+          <option value="name">File name</option>
+          <option value="created">Date created</option>
+          <option value="fps">Frame rate</option>
+          <option value="resolution">Resolution</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Order</label>
+        <select id="sortOrder">
+          <option value="asc">Ascending</option>
+          <option value="desc">Descending</option>
+        </select>
+      </div>
+      <div class="field-group toggle-row">
+        <label>Group into sub-bins</label>
+        <label class="switch">
+          <input type="checkbox" id="groupBins" checked />
+          <span class="slider"></span>
+        </label>
+      </div>
+      <button class="btn primary" id="btnSort">Sort Clips</button>
+      <div class="log" id="sortLog"></div>
+    </section>
+
+    <!-- ── BEAT SYNC TAB ── -->
+    <section class="tab-panel" id="tab-beat">
+      <p class="desc">Detect beats in your music track and snap edit points to the grid.</p>
+      <div class="field-group">
+        <label>Music track</label>
+        <div class="file-row">
+          <input type="text" id="musicPath" placeholder="Select audio file…" readonly />
+          <button class="btn small" id="btnPickMusic">Browse</button>
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Beat sensitivity <span id="sensitivityVal">0.5</span></label>
+        <input type="range" id="sensitivity" min="0.1" max="1.0" step="0.05" value="0.5" />
+      </div>
+      <div class="field-group toggle-row">
+        <label>Snap cuts to nearest beat</label>
+        <label class="switch">
+          <input type="checkbox" id="snapCuts" checked />
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="field-group toggle-row">
+        <label>Add beat markers to sequence</label>
+        <label class="switch">
+          <input type="checkbox" id="addMarkers" checked />
+          <span class="slider"></span>
+        </label>
+      </div>
+      <button class="btn primary" id="btnAnalyzeBeat">Analyze Beats</button>
+      <div class="beat-vis" id="beatVis">
+        <canvas id="beatCanvas" width="340" height="60"></canvas>
+      </div>
+      <button class="btn accent" id="btnSyncToBeats" disabled>Sync Timeline to Beats</button>
+      <div class="log" id="beatLog"></div>
+    </section>
+
+    <!-- ── AUTO CUT TAB ── -->
+    <section class="tab-panel" id="tab-cut">
+      <p class="desc">Build a complete rough cut from your bin — zero manual editing.</p>
+      <div class="field-group">
+        <label>Target duration (sec)</label>
+        <input type="number" id="targetDuration" value="180" min="10" max="600" />
+      </div>
+      <div class="field-group">
+        <label>Min clip length (sec)</label>
+        <input type="number" id="minClipLen" value="2" min="1" max="30" step="0.5" />
+      </div>
+      <div class="field-group">
+        <label>Max clip length (sec)</label>
+        <input type="number" id="maxClipLen" value="8" min="1" max="60" step="0.5" />
+      </div>
+      <div class="field-group">
+        <label>Cut rhythm</label>
+        <select id="cutRhythm">
+          <option value="beat">Beat-locked (requires analysis)</option>
+          <option value="random">Random within range</option>
+          <option value="energy">Audio energy-driven</option>
+        </select>
+      </div>
+      <div class="field-group toggle-row">
+        <label>Use every clip at least once</label>
+        <label class="switch">
+          <input type="checkbox" id="useAll" />
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="field-group toggle-row">
+        <label>Skip duplicate clips</label>
+        <label class="switch">
+          <input type="checkbox" id="skipDupes" checked />
+          <span class="slider"></span>
+        </label>
+      </div>
+      <button class="btn primary" id="btnBuildCut">Build Rough Cut</button>
+      <div class="progress-bar" id="cutProgress" style="display:none">
+        <div class="progress-fill" id="cutFill"></div>
+      </div>
+      <div class="log" id="cutLog"></div>
+    </section>
+
+    <!-- ── SWAP TAB ── -->
+    <section class="tab-panel" id="tab-swap">
+      <p class="desc">Replace selected timeline clips with alternatives — timeline stays intact.</p>
+      <div class="field-group">
+        <label>Replace mode</label>
+        <select id="swapMode">
+          <option value="similar_duration">Match duration</option>
+          <option value="random">Random from bin</option>
+          <option value="next">Next clip in bin</option>
+          <option value="prev">Previous clip in bin</option>
+        </select>
+      </div>
+      <div class="field-group toggle-row">
+        <label>Preserve audio</label>
+        <label class="switch">
+          <input type="checkbox" id="preserveAudio" checked />
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="field-group toggle-row">
+        <label>Keep original speed</label>
+        <label class="switch">
+          <input type="checkbox" id="keepSpeed" checked />
+          <span class="slider"></span>
+        </label>
+      </div>
+      <button class="btn secondary" id="btnSwapSelected">Swap Selected</button>
+      <button class="btn accent" id="btnShuffleAll">Shuffle All Clips</button>
+      <button class="btn danger" id="btnUndo">Undo Last Swap</button>
+      <div class="log" id="swapLog"></div>
+    </section>
+  </div>
+
+  <script src="js/CSInterface.js"></script>
+  <script src="js/panel.js"></script>
+</body>
+</html>

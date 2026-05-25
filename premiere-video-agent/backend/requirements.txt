@@ -1,0 +1,3 @@
+# Required for non-WAV audio (MP3, AAC, FLAC, etc.) and faster beat detection
+librosa>=0.10.0
+soundfile>=0.12.1
