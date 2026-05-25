@@ -25,28 +25,41 @@ function evalScript(script) {
   });
 }
 
-async function callBackend(path, body) {
-  const res = await fetch(`${BACKEND}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+function callBackend(path, body) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${BACKEND}${path}`, true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.timeout = 30000;
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try { resolve(JSON.parse(xhr.responseText)); }
+        catch (e) { reject(new Error("Invalid JSON from backend")); }
+      } else {
+        reject(new Error(`Backend ${xhr.status}: ${xhr.responseText}`));
+      }
+    };
+    xhr.onerror   = () => reject(new Error("Cannot reach backend (connection refused)"));
+    xhr.ontimeout = () => reject(new Error("Backend request timed out"));
+    xhr.send(JSON.stringify(body));
   });
-  if (!res.ok) throw new Error(`Backend ${res.status}: ${await res.text()}`);
-  return res.json();
 }
 
 /* ── Backend health check ───────────────────────────── */
-async function checkBackend() {
+function checkBackend() {
   const dot = document.getElementById("statusDot");
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 2000);
-    const res = await fetch(`${BACKEND}/ping`, { signal: controller.signal });
-    clearTimeout(timer);
-    if (res.ok) { dot.className = "status-dot online"; return true; }
-  } catch (_) {}
-  dot.className = "status-dot error";
-  return false;
+  return new Promise((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", `${BACKEND}/ping`, true);
+    xhr.timeout = 2000;
+    xhr.onload = () => {
+      if (xhr.status === 200) { dot.className = "status-dot online"; resolve(true); }
+      else { dot.className = "status-dot error"; resolve(false); }
+    };
+    xhr.onerror   = () => { dot.className = "status-dot error"; resolve(false); };
+    xhr.ontimeout = () => { dot.className = "status-dot error"; resolve(false); };
+    xhr.send();
+  });
 }
 
 /* ── Tab navigation ─────────────────────────────────── */
